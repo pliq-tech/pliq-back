@@ -1,0 +1,2 @@
+# Local development override: uses sibling directory when available
+# In CI/CD, cargo fetches pliq-back-db via git dependency instead
