@@ -8,6 +8,7 @@ Rust backend API for the Pliq rental platform. Provides REST endpoints, WebSocke
 - [Docker](https://www.docker.com/) (for containerized builds)
 - [protoc](https://grpc.io/docs/protoc-installation/) (Protocol Buffers compiler)
 - PostgreSQL 17 (via docker-compose or local install)
+- [Alloy](https://alloy.rs/) 1.8 (EVM types and on-chain event indexing)
 
 ## Setup
 
@@ -63,6 +64,7 @@ src/
 ├── api/
 │   ├── routes.rs        # Route definitions (40+ endpoints)
 │   ├── errors.rs        # ApiError enum, IntoResponse
+│   ├── response.rs      # Response envelope helpers
 │   ├── handlers/        # HTTP request handlers
 │   │   ├── auth.rs      # World ID verification
 │   │   ├── users.rs     # User profile CRUD
@@ -89,6 +91,9 @@ src/
 │   ├── reputation.rs    # PoR scoring + Merkle tree
 │   ├── escrow.rs        # Hash-based escrow
 │   └── privacy.rs       # Unlink integration
+├── chain/               # On-chain integration
+│   ├── events.rs        # Contract event type definitions
+│   └── indexer.rs       # On-chain event indexer (Alloy)
 ├── crypto/              # Cryptographic modules
 │   ├── merkle.rs        # SHA-3 Merkle tree
 │   ├── commitments.rs   # Hash-based escrow commitments
