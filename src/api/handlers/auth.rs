@@ -24,9 +24,12 @@ pub async fn verify_world_id(
     State(state): State<AppState>,
     Json(body): Json<VerifyWorldIdRequest>,
 ) -> Result<Json<AuthResponse>, ApiError> {
-    // Check for existing user
-    let existing = pliq_back_db::queries::users::get_by_nullifier(&state.db, &body.nullifier_hash)
-        .await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    let existing = pliq_back_db::queries::users::get_by_nullifier(
+        &state.db,
+        &body.nullifier_hash,
+    )
+    .await
+    .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     let (user, is_new_user) = match existing {
         Some(user) => (user, false),
@@ -44,13 +47,28 @@ pub async fn verify_world_id(
                 verification_level: level,
             };
             let user = pliq_back_db::queries::users::create(&state.db, &new_user)
-                .await.map_err(|e| ApiError::Internal(e.to_string()))?;
+                .await
+                .map_err(|e| ApiError::Internal(e.to_string()))?;
             (user, true)
         }
     };
 
-    let token = encode_jwt(user.id, &user.nullifier_hash, &state.config.jwt_secret)
-        .map_err(|e| ApiError::Internal(format!("JWT error: {}", e)))?;
+    let role = format!("{:?}", user.role).to_lowercase();
+    let verification = format!("{:?}", user.verification_level).to_lowercase();
 
-    Ok(Json(AuthResponse { token, user_id: user.id, is_new_user }))
+    let token = encode_jwt(
+        user.id,
+        &user.nullifier_hash,
+        &role,
+        &verification,
+        &state.config.jwt_secret,
+        state.config.jwt_expiry_hours,
+    )
+    .map_err(|e| ApiError::Internal(format!("JWT error: {e}")))?;
+
+    Ok(Json(AuthResponse {
+        token,
+        user_id: user.id,
+        is_new_user,
+    }))
 }

@@ -5,64 +5,189 @@ use uuid::Uuid;
 use crate::api::errors::ApiError;
 use crate::api::extractors::auth::AuthenticatedUser;
 use crate::AppState;
-use pliq_back_db::models::{CurrencyType, Listing, ListingFilters, NewListing, PaginatedResult, UpdateListing};
+use pliq_back_db::models::{
+    CurrencyType, Listing, ListingFilters, ListingStatus, NewListing,
+    PaginatedResult, UpdateListing,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateListingRequest {
-    pub title: String, pub description: String, pub address: String, pub city: String, pub country: String,
-    pub latitude: Option<f64>, pub longitude: Option<f64>, pub rent_amount: i64, pub deposit_amount: i64,
-    pub currency: CurrencyType, pub bedrooms: i32, pub bathrooms: i32, pub area_sqm: i32,
-    pub amenities: serde_json::Value, pub photos: serde_json::Value, pub required_credentials: Option<serde_json::Value>,
+    pub title: String,
+    pub description: String,
+    pub address: String,
+    pub city: String,
+    pub country: String,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub rent_amount: i64,
+    pub deposit_amount: i64,
+    pub currency: CurrencyType,
+    pub bedrooms: i32,
+    pub bathrooms: i32,
+    pub area_sqm: i32,
+    pub amenities: serde_json::Value,
+    pub photos: serde_json::Value,
+    pub required_credentials: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ListingFilterParams {
-    pub city: Option<String>, pub min_rent: Option<i64>, pub max_rent: Option<i64>,
-    pub min_bedrooms: Option<i32>, pub page: Option<i64>, pub per_page: Option<i64>,
+    pub city: Option<String>,
+    pub min_rent: Option<i64>,
+    pub max_rent: Option<i64>,
+    pub min_bedrooms: Option<i32>,
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
 }
 
-pub async fn create_listing(State(state): State<AppState>, auth: AuthenticatedUser, Json(body): Json<CreateListingRequest>) -> Result<(axum::http::StatusCode, Json<Listing>), ApiError> {
+pub async fn create_listing(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(body): Json<CreateListingRequest>,
+) -> Result<(axum::http::StatusCode, Json<Listing>), ApiError> {
+    if body.title.is_empty() {
+        return Err(ApiError::Validation("Title is required".into()));
+    }
+    if body.rent_amount <= 0 {
+        return Err(ApiError::Validation("Rent amount must be positive".into()));
+    }
     let new = NewListing {
-        landlord_id: auth.user_id, title: body.title, description: body.description, address: body.address,
-        city: body.city, country: body.country, latitude: body.latitude, longitude: body.longitude,
-        rent_amount: body.rent_amount, deposit_amount: body.deposit_amount, currency: body.currency,
-        bedrooms: body.bedrooms, bathrooms: body.bathrooms, area_sqm: body.area_sqm,
-        amenities: body.amenities, photos: body.photos, required_credentials: body.required_credentials,
+        landlord_id: auth.user_id,
+        title: body.title,
+        description: body.description,
+        address: body.address,
+        city: body.city,
+        country: body.country,
+        latitude: body.latitude,
+        longitude: body.longitude,
+        rent_amount: body.rent_amount,
+        deposit_amount: body.deposit_amount,
+        currency: body.currency,
+        bedrooms: body.bedrooms,
+        bathrooms: body.bathrooms,
+        area_sqm: body.area_sqm,
+        amenities: body.amenities,
+        photos: body.photos,
+        required_credentials: body.required_credentials,
     };
     let listing = pliq_back_db::queries::listings::create(&state.db, &new).await?;
     Ok((axum::http::StatusCode::CREATED, Json(listing)))
 }
 
-pub async fn list_listings(State(state): State<AppState>, Query(params): Query<ListingFilterParams>) -> Result<Json<PaginatedResult<Listing>>, ApiError> {
-    let filters = ListingFilters { city: params.city, min_rent: params.min_rent, max_rent: params.max_rent, min_bedrooms: params.min_bedrooms, ..Default::default() };
-    let pagination = pliq_back_db::models::Pagination::new(params.page.unwrap_or(1), params.per_page.unwrap_or(20));
-    let result = pliq_back_db::queries::listings::list_with_filters(&state.db, &filters, &pagination).await?;
+pub async fn list_listings(
+    State(state): State<AppState>,
+    Query(params): Query<ListingFilterParams>,
+) -> Result<Json<PaginatedResult<Listing>>, ApiError> {
+    let filters = ListingFilters {
+        city: params.city,
+        min_rent: params.min_rent,
+        max_rent: params.max_rent,
+        min_bedrooms: params.min_bedrooms,
+        ..Default::default()
+    };
+    let pagination = pliq_back_db::models::Pagination::new(
+        params.page.unwrap_or(1),
+        params.per_page.unwrap_or(20),
+    );
+    let result = pliq_back_db::queries::listings::list_with_filters(
+        &state.db, &filters, &pagination,
+    )
+    .await?;
     Ok(Json(result))
 }
 
-pub async fn get_listing(State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<Listing>, ApiError> {
-    let listing = pliq_back_db::queries::listings::get_by_id(&state.db, id).await?.ok_or_else(|| ApiError::NotFound("Listing not found".into()))?;
+pub async fn get_listing(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Listing>, ApiError> {
+    let listing = pliq_back_db::queries::listings::get_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| ApiError::NotFound("Listing not found".into()))?;
     Ok(Json(listing))
 }
 
-pub async fn update_listing(State(state): State<AppState>, auth: AuthenticatedUser, Path(id): Path<Uuid>, Json(body): Json<serde_json::Value>) -> Result<Json<Listing>, ApiError> {
-    let existing = pliq_back_db::queries::listings::get_by_id(&state.db, id).await?.ok_or_else(|| ApiError::NotFound("Listing not found".into()))?;
-    if existing.landlord_id != auth.user_id { return Err(ApiError::Forbidden("Not the listing owner".into())); }
+pub async fn update_listing(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<Listing>, ApiError> {
+    let existing = pliq_back_db::queries::listings::get_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| ApiError::NotFound("Listing not found".into()))?;
+    if existing.landlord_id != auth.user_id {
+        return Err(ApiError::Forbidden("Not the listing owner".into()));
+    }
     let updates = UpdateListing {
         title: body.get("title").and_then(|v| v.as_str()).map(String::from),
         description: body.get("description").and_then(|v| v.as_str()).map(String::from),
         rent_amount: body.get("rent_amount").and_then(|v| v.as_i64()),
         deposit_amount: body.get("deposit_amount").and_then(|v| v.as_i64()),
-        amenities: body.get("amenities").cloned(), photos: body.get("photos").cloned(),
+        amenities: body.get("amenities").cloned(),
+        photos: body.get("photos").cloned(),
         required_credentials: body.get("required_credentials").cloned(),
     };
     let listing = pliq_back_db::queries::listings::update(&state.db, id, &updates).await?;
     Ok(Json(listing))
 }
 
-pub async fn delete_listing(State(state): State<AppState>, auth: AuthenticatedUser, Path(id): Path<Uuid>) -> Result<Json<Listing>, ApiError> {
-    let existing = pliq_back_db::queries::listings::get_by_id(&state.db, id).await?.ok_or_else(|| ApiError::NotFound("Listing not found".into()))?;
-    if existing.landlord_id != auth.user_id { return Err(ApiError::Forbidden("Not the listing owner".into())); }
-    let listing = pliq_back_db::queries::listings::update_status(&state.db, id, pliq_back_db::models::ListingStatus::Archived).await?;
+pub async fn delete_listing(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Listing>, ApiError> {
+    let existing = pliq_back_db::queries::listings::get_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| ApiError::NotFound("Listing not found".into()))?;
+    if existing.landlord_id != auth.user_id {
+        return Err(ApiError::Forbidden("Not the listing owner".into()));
+    }
+    let listing = pliq_back_db::queries::listings::update_status(
+        &state.db, id, ListingStatus::Archived,
+    )
+    .await?;
     Ok(Json(listing))
+}
+
+pub async fn verify_listing(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Listing>, ApiError> {
+    let listing = pliq_back_db::queries::listings::get_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| ApiError::NotFound("Listing not found".into()))?;
+    if listing.landlord_id != auth.user_id {
+        return Err(ApiError::Forbidden("Not the listing owner".into()));
+    }
+    let updated = pliq_back_db::queries::listings::update_status(
+        &state.db, id, ListingStatus::Analyzing,
+    )
+    .await?;
+    // TODO: trigger gRPC call to pliq-ai for fraud analysis
+    Ok(Json(updated))
+}
+
+pub async fn get_fraud_score(
+    State(state): State<AppState>,
+    _auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let result = pliq_back_db::queries::fraud_results::get_latest_by_listing(&state.db, id)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    match result {
+        Some(r) => Ok(Json(serde_json::json!({
+            "listing_id": id,
+            "overall_score": r.overall_score,
+            "image_score": r.image_score,
+            "text_score": r.text_score,
+            "price_score": r.price_score,
+            "explanation": r.explanation,
+        }))),
+        None => Ok(Json(serde_json::json!({
+            "listing_id": id,
+            "message": "No fraud analysis available yet",
+        }))),
+    }
 }
