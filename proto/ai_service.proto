@@ -2,74 +2,35 @@ syntax = "proto3";
 
 package pliq.ai.v1;
 
-// === Fraud Detection Service ===
+// === Shared Enums ===
 
-service FraudDetectionService {
-  rpc AnalyzeImage(AnalyzeImageRequest) returns (FraudReport);
-  rpc DetectPriceAnomaly(PriceAnomalyRequest) returns (PriceAnomalyReport);
-  rpc DetectDuplicateListing(DuplicateListingRequest) returns (DuplicateReport);
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW = 1;
+  RISK_LEVEL_MEDIUM = 2;
+  RISK_LEVEL_HIGH = 3;
+  RISK_LEVEL_CRITICAL = 4;
 }
 
-message AnalyzeImageRequest {
-  bytes image_data = 1;
-  string image_format = 2;
-  string listing_id = 3;
-}
+// === Shared Types ===
 
-message FraudReport {
-  double overall_score = 1;
-  double ela_score = 2;
-  double fft_score = 3;
-  double exif_score = 4;
-  string explanation = 5;
-  repeated string flags = 6;
-}
-
-message PriceAnomalyRequest {
-  double listing_price = 1;
-  string city = 2;
-  int32 bedrooms = 3;
-  int32 area_sqm = 4;
-  repeated double comparable_prices = 5;
-}
-
-message PriceAnomalyReport {
-  double score = 1;
-  double confidence = 2;
-  double z_score = 3;
-  double median_price = 4;
-  int32 comparable_count = 5;
-  string explanation = 6;
-}
-
-message DuplicateListingRequest {
+message ListingData {
   string listing_id = 1;
   string title = 2;
   string description = 3;
   string address = 4;
   double latitude = 5;
   double longitude = 6;
-  repeated bytes photos = 7;
+  double price = 7;
+  int32 bedrooms = 8;
+  int32 area_sqm = 9;
+  repeated string amenities = 10;
+  bool pets_allowed = 11;
+  repeated string allowed_pet_types = 12;
 }
 
-message DuplicateReport {
-  double score = 1;
-  double text_similarity = 2;
-  double image_similarity = 3;
-  double location_proximity = 4;
-  repeated string matched_listing_ids = 5;
-  string summary = 6;
-}
-
-// === Matching Service ===
-
-service MatchingService {
-  rpc RankListings(RankListingsRequest) returns (RankListingsResponse);
-  rpc RecommendListings(RecommendRequest) returns (RankListingsResponse);
-}
-
-message TenantProfile {
-  string tenant_id = 1;
+message UserPreferences {
+  string user_id = 1;
   int32 max_commute_minutes = 2;
   int32 noise_tolerance = 3;
   repeated string desired_amenities = 4;
@@ -80,20 +41,83 @@ message TenantProfile {
   string pet_type = 9;
 }
 
-message ListingProfile {
-  string listing_id = 1;
-  int32 estimated_commute = 2;
-  int32 noise_level = 3;
-  repeated string amenities = 4;
-  int32 social_score = 5;
-  double price = 6;
-  bool pets_allowed = 7;
-  repeated string allowed_pet_types = 8;
+// === Fraud Detection Service ===
+
+service FraudDetectionService {
+  rpc AnalyzeImage(ImageAnalysisRequest) returns (ImageAnalysisResponse);
+  rpc AnalyzeListing(ListingAnalysisRequest) returns (ListingAnalysisResponse);
+  rpc CheckPriceReasonability(PriceCheckRequest) returns (PriceCheckResponse);
 }
 
-message RankListingsRequest {
-  TenantProfile tenant = 1;
-  repeated ListingProfile candidates = 2;
+// -- Image analysis --
+
+message ImageAnalysisRequest {
+  bytes image_data = 1;
+  string image_format = 2;
+  string listing_id = 3;
+}
+
+message ImageAnalysisResponse {
+  double overall_score = 1;
+  double ela_score = 2;
+  double fft_score = 3;
+  double exif_score = 4;
+  RiskLevel risk_level = 5;
+  string explanation = 6;
+  repeated string flags = 7;
+}
+
+// -- Listing analysis --
+
+message ListingAnalysisRequest {
+  ListingData listing = 1;
+  repeated bytes photos = 2;
+}
+
+message ListingAnalysisResponse {
+  double overall_risk_score = 1;
+  RiskLevel risk_level = 2;
+  double text_quality_score = 3;
+  double image_authenticity_score = 4;
+  double price_reasonability_score = 5;
+  double duplicate_similarity_score = 6;
+  repeated string matched_listing_ids = 7;
+  string summary = 8;
+  repeated string flags = 9;
+}
+
+// -- Price reasonability check --
+
+message PriceCheckRequest {
+  double listing_price = 1;
+  string city = 2;
+  int32 bedrooms = 3;
+  int32 area_sqm = 4;
+  repeated double comparable_prices = 5;
+}
+
+message PriceCheckResponse {
+  double score = 1;
+  double confidence = 2;
+  double z_score = 3;
+  double median_price = 4;
+  int32 comparable_count = 5;
+  RiskLevel risk_level = 6;
+  string explanation = 7;
+}
+
+// === Matching Service ===
+
+service MatchingService {
+  rpc RankListings(RankRequest) returns (RankResponse);
+  rpc RecommendListings(RecommendRequest) returns (RecommendResponse);
+}
+
+// -- Rank listings --
+
+message RankRequest {
+  UserPreferences tenant = 1;
+  repeated ListingData candidates = 2;
   int32 top_n = 3;
 }
 
@@ -109,11 +133,17 @@ message MatchScore {
   string narrative = 9;
 }
 
-message RankListingsResponse {
+message RankResponse {
   repeated MatchScore matches = 1;
 }
+
+// -- Recommend listings --
 
 message RecommendRequest {
   string tenant_id = 1;
   int32 top_n = 2;
+}
+
+message RecommendResponse {
+  repeated MatchScore matches = 1;
 }

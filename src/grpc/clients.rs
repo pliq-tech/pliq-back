@@ -25,61 +25,61 @@ impl AiClient {
     /// Analyze a listing image for fraud indicators.
     pub async fn analyze_image(
         &self,
-        _request: ai_service::AnalyzeImageRequest,
-    ) -> Result<ai_service::FraudReport, AiClientError> {
+        _request: ai_service::ImageAnalysisRequest,
+    ) -> Result<ai_service::ImageAnalysisResponse, AiClientError> {
         tracing::warn!(
             host = %self.ai_host,
             "AI service not connected: analyze_image is a stub"
         );
-        Ok(ai_service::FraudReport::default())
+        Ok(ai_service::ImageAnalysisResponse::default())
     }
 
-    /// Detect price anomalies for a listing.
-    pub async fn detect_price_anomaly(
+    /// Analyze an entire listing for fraud risk.
+    pub async fn analyze_listing(
         &self,
-        _request: ai_service::PriceAnomalyRequest,
-    ) -> Result<ai_service::PriceAnomalyReport, AiClientError> {
+        _request: ai_service::ListingAnalysisRequest,
+    ) -> Result<ai_service::ListingAnalysisResponse, AiClientError> {
         tracing::warn!(
             host = %self.ai_host,
-            "AI service not connected: detect_price_anomaly is a stub"
+            "AI service not connected: analyze_listing is a stub"
         );
-        Ok(ai_service::PriceAnomalyReport::default())
+        Ok(ai_service::ListingAnalysisResponse::default())
     }
 
-    /// Detect duplicate listings.
-    pub async fn detect_duplicate(
+    /// Check price reasonability for a listing.
+    pub async fn check_price_reasonability(
         &self,
-        _request: ai_service::DuplicateListingRequest,
-    ) -> Result<ai_service::DuplicateReport, AiClientError> {
+        _request: ai_service::PriceCheckRequest,
+    ) -> Result<ai_service::PriceCheckResponse, AiClientError> {
         tracing::warn!(
             host = %self.ai_host,
-            "AI service not connected: detect_duplicate is a stub"
+            "AI service not connected: check_price_reasonability is a stub"
         );
-        Ok(ai_service::DuplicateReport::default())
+        Ok(ai_service::PriceCheckResponse::default())
     }
 
     /// Rank listings for a tenant by compatibility.
     pub async fn rank_listings(
         &self,
-        _request: ai_service::RankListingsRequest,
-    ) -> Result<ai_service::RankListingsResponse, AiClientError> {
+        _request: ai_service::RankRequest,
+    ) -> Result<ai_service::RankResponse, AiClientError> {
         tracing::warn!(
             host = %self.ai_host,
             "AI service not connected: rank_listings is a stub"
         );
-        Ok(ai_service::RankListingsResponse::default())
+        Ok(ai_service::RankResponse::default())
     }
 
     /// Recommend listings for a tenant.
     pub async fn recommend_listings(
         &self,
         _request: ai_service::RecommendRequest,
-    ) -> Result<ai_service::RankListingsResponse, AiClientError> {
+    ) -> Result<ai_service::RecommendResponse, AiClientError> {
         tracing::warn!(
             host = %self.ai_host,
             "AI service not connected: recommend_listings is a stub"
         );
-        Ok(ai_service::RankListingsResponse::default())
+        Ok(ai_service::RecommendResponse::default())
     }
 }
 
