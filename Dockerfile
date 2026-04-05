@@ -30,7 +30,7 @@ COPY build.rs ./
 RUN cargo build --release
 
 # Stage 2: Runtime
-FROM debian:bookworm-slim AS runner
+FROM debian:trixie-slim AS runner
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
