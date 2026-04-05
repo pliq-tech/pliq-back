@@ -1,8 +1,10 @@
 mod api;
+mod application;
 mod config;
 mod crypto;
 mod domain;
 mod grpc;
+mod infrastructure;
 mod services;
 mod websocket;
 
