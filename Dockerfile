@@ -36,6 +36,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 1001 pliq && \
@@ -44,5 +45,9 @@ RUN groupadd --system --gid 1001 pliq && \
 COPY --from=builder /app/target/release/pliq-back ./pliq-back
 
 USER pliq
-EXPOSE 8080
+EXPOSE 3001 50051
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:3001/api/v1/health || exit 1
+
 CMD ["./pliq-back"]
