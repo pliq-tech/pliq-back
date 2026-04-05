@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package pliq.common.v1;
+
+// === Shared Messages ===
+// Common types used across multiple gRPC services.
+
+// Core listing data shared between fraud detection and matching
+message ListingData {
+  string listing_id = 1;
+  string title = 2;
+  string description = 3;
+  string address = 4;
+  double latitude = 5;
+  double longitude = 6;
+  double price = 7;
+  int32 bedrooms = 8;
+  int32 area_sqm = 9;
+  repeated string amenities = 10;
+  bool pets_allowed = 11;
+  repeated string allowed_pet_types = 12;
+}
+
+// Image data for fraud analysis
+message ImageData {
+  bytes raw_data = 1;
+  string format = 2;
+  string source_url = 3;
+  string listing_id = 4;
+}
+
+// Fraud score result
+message FraudScore {
+  double overall_score = 1;
+  double confidence = 2;
+  string explanation = 3;
+  repeated string flags = 4;
+}
+
+// Match score between tenant and listing
+message MatchScore {
+  string listing_id = 1;
+  double overall_score = 2;
+  double commute_score = 3;
+  double noise_score = 4;
+  double amenity_score = 5;
+  double social_score = 6;
+  double budget_score = 7;
+  double pet_score = 8;
+  string narrative = 9;
+}
+
+// User preferences for matching
+message UserPreferences {
+  string user_id = 1;
+  int32 max_commute_minutes = 2;
+  int32 noise_tolerance = 3;
+  repeated string desired_amenities = 4;
+  int32 social_preference = 5;
+  double min_budget = 6;
+  double max_budget = 7;
+  bool has_pets = 8;
+  string pet_type = 9;
+}
