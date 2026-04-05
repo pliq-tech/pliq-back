@@ -1,5 +1,6 @@
 mod api;
 mod application;
+mod chain;
 mod config;
 mod crypto;
 mod domain;
