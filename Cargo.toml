@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-pliq-back-db = { path = "../pliq-back-db" }
+pliq-back-db = { git = "ssh://git@github.com/pliq-tech/pliq-back-db", branch = "main" }
 
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.8", features = ["ws", "macros"] }

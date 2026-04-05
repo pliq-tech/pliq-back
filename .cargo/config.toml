@@ -1,2 +1,8 @@
+# Use system git for fetching (supports SSH keys and credential helpers)
+[net]
+git-fetch-with-cli = true
+
 # Local development override: uses sibling directory when available
 # In CI/CD, cargo fetches pliq-back-db via git dependency instead
+[patch."ssh://git@github.com/pliq-tech/pliq-back-db"]
+pliq-back-db = { path = "../pliq-back-db" }
