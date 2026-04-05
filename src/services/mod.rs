@@ -1,3 +1,8 @@
-// Service layer for orchestrating business operations.
-// Handlers currently call queries directly for simplicity.
-// Extract shared business logic into service modules as it emerges.
+pub mod applications;
+pub mod escrow;
+pub mod identity;
+pub mod leases;
+pub mod listings;
+pub mod payments;
+pub mod privacy;
+pub mod reputation;
