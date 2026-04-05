@@ -51,6 +51,14 @@ async fn main() {
             std::process::exit(1);
         });
 
+    pliq_back_db::run_migrations(&db)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::error!("Migration error: {e}");
+            std::process::exit(1);
+        });
+    tracing::info!("Database migrations applied");
+
     let merkle_tree = rebuild_merkle_tree(&db).await;
 
     let state = AppState {

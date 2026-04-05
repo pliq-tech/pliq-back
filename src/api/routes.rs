@@ -21,6 +21,10 @@ pub fn build_router(state: AppState) -> Router {
     let protected = build_protected_routes()
         .layer(axum_mw::from_fn_with_state(state.clone(), auth_middleware));
 
+    let public_listings = Router::new()
+        .route("/listings", get(handlers::listings::list_listings))
+        .route("/listings/{id}", get(handlers::listings::get_listing));
+
     let public_reputation = Router::new()
         .route("/reputation/root", get(handlers::reputation::get_merkle_root))
         .route("/reputation/verify-proof", post(handlers::reputation::verify_proof));
@@ -31,6 +35,7 @@ pub fn build_router(state: AppState) -> Router {
         .nest("/api/v1", public)
         .nest("/api/v1", auth)
         .nest("/api/v1", protected)
+        .nest("/api/v1", public_listings)
         .nest("/api/v1", public_reputation)
         .layer(axum_mw::from_fn(tracing_middleware))
         .layer(axum_mw::from_fn(request_id_middleware))
@@ -45,8 +50,8 @@ fn build_protected_routes() -> Router<AppState> {
         .route("/users/me", get(handlers::users::get_me).put(handlers::users::update_me))
         .route("/users/{id}/public", get(handlers::users::get_public_profile))
         // Listings
-        .route("/listings", post(handlers::listings::create_listing).get(handlers::listings::list_listings))
-        .route("/listings/{id}", get(handlers::listings::get_listing).put(handlers::listings::update_listing).delete(handlers::listings::delete_listing))
+        .route("/listings", post(handlers::listings::create_listing))
+        .route("/listings/{id}", put(handlers::listings::update_listing).delete(handlers::listings::delete_listing))
         .route("/listings/{id}/verify", post(handlers::listings::verify_listing))
         .route("/listings/{id}/fraud-score", get(handlers::listings::get_fraud_score))
         // Applications
