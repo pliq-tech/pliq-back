@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package pliq.matching;
+
+service MatchingService {
+  rpc FindMatches(FindMatchesRequest) returns (FindMatchesResponse);
+  rpc ScoreCompatibility(CompatibilityRequest) returns (CompatibilityResponse);
+}
+
+message FindMatchesRequest {
+  string tenant_id = 1;
+  TenantPreferences preferences = 2;
+  int32 max_results = 3;
+}
+
+message TenantPreferences {
+  double max_rent = 1;
+  string currency = 2;
+  int32 min_bedrooms = 3;
+  double min_area_sqm = 4;
+  string preferred_location_hash = 5;
+  string move_in_after = 6;
+}
+
+message FindMatchesResponse {
+  repeated MatchResult matches = 1;
+}
+
+message MatchResult {
+  string listing_id = 1;
+  double compatibility_score = 2;
+  repeated string match_reasons = 3;
+}
+
+message CompatibilityRequest {
+  string tenant_id = 1;
+  string listing_id = 2;
+}
+
+message CompatibilityResponse {
+  double score = 1;
+  repeated string factors = 2;
+}

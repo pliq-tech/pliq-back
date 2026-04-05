@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package pliq.fraud;
+
+service FraudDetectionService {
+  rpc AnalyzeUserBehavior(UserBehaviorRequest) returns (UserBehaviorResponse);
+  rpc AnalyzeImages(ImageAnalysisRequest) returns (ImageAnalysisResponse);
+}
+
+message UserBehaviorRequest {
+  string user_id = 1;
+  repeated string action_history = 2;
+  string ip_hash = 3;
+  int32 account_age_days = 4;
+}
+
+message UserBehaviorResponse {
+  string user_id = 1;
+  double risk_score = 2;
+  repeated string risk_factors = 3;
+}
+
+message ImageAnalysisRequest {
+  string listing_id = 1;
+  repeated string image_cids = 2;
+}
+
+message ImageAnalysisResponse {
+  string listing_id = 1;
+  repeated ImageResult results = 2;
+}
+
+message ImageResult {
+  string image_cid = 1;
+  bool is_authentic = 2;
+  double manipulation_score = 3;
+  repeated string findings = 4;
+}
