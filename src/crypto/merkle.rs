@@ -1,5 +1,11 @@
 use sha3::{Digest, Keccak256};
 
+/// A Merkle inclusion proof.
+pub struct MerkleProof {
+    pub siblings: Vec<[u8; 32]>,
+    pub path_indices: Vec<bool>,
+}
+
 /// SHA-3 Merkle tree for Proof of Rent.
 pub struct MerkleTree {
     leaves: Vec<[u8; 32]>,
@@ -54,11 +60,20 @@ impl MerkleTree {
         Some(proof)
     }
 
-    /// Verify a Merkle proof.
-    pub fn verify(root: &[u8; 32], leaf_hash: &[u8; 32], proof: &[(bool, [u8; 32])]) -> bool {
+    /// Get a structured Merkle proof for the leaf at the given index.
+    pub fn structured_proof(&self, leaf_index: usize) -> Option<MerkleProof> {
+        self.proof(leaf_index).map(|entries| {
+            let siblings = entries.iter().map(|(_, s)| *s).collect();
+            let path_indices = entries.iter().map(|(is_left, _)| *is_left).collect();
+            MerkleProof { siblings, path_indices }
+        })
+    }
+
+    /// Verify a Merkle proof (tuple-based).
+    pub fn verify(root: &[u8; 32], leaf_hash: &[u8; 32], proof: &MerkleProof) -> bool {
         let mut current = *leaf_hash;
 
-        for (is_left, sibling) in proof {
+        for (sibling, is_left) in proof.siblings.iter().zip(proof.path_indices.iter()) {
             current = if *is_left {
                 hash_pair(sibling, &current)
             } else {
@@ -154,7 +169,7 @@ mod tests {
         tree.insert_leaf(b"payment_3");
 
         let root = tree.root().unwrap();
-        let proof = tree.proof(1).unwrap();
+        let proof = tree.structured_proof(1).unwrap();
         let leaf_hash = hash_leaf(b"payment_2");
 
         assert!(MerkleTree::verify(&root, &leaf_hash, &proof));
@@ -167,7 +182,7 @@ mod tests {
         tree.insert_leaf(b"payment_2");
 
         let root = tree.root().unwrap();
-        let proof = tree.proof(0).unwrap();
+        let proof = tree.structured_proof(0).unwrap();
         let wrong_leaf = hash_leaf(b"tampered");
 
         assert!(!MerkleTree::verify(&root, &wrong_leaf, &proof));
