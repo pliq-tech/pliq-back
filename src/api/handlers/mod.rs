@@ -1,4 +1,9 @@
+pub mod applications;
 pub mod auth;
+pub mod escrow;
 pub mod health;
+pub mod leases;
 pub mod listings;
+pub mod payments;
+pub mod reputation;
 pub mod users;
